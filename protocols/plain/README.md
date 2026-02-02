@@ -2,6 +2,8 @@
 
 This directory contain the WASM file for the [plain example from refraction-networking/watm](https://github.com/refraction-networking/watm/tree/master/tinygo/v1/examples/plain). This is only intended for development purposes and shouldn't be used in production.
 
+v1.0.0 WASM hashsum: `b764e7ca6ea2d883d776f19600e1b263920488989f4f230ee195a56faea3b732`
+
 ## Steps for generating the WASM file
 
 - Install [TinyGo](https://tinygo.org/getting-started/install/)
