@@ -1,0 +1,54 @@
+name: Sync WASM files to S3
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '**/*.wasm'
+
+jobs:
+  sync:
+    name: Upload changed WASM files to S3
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository (with LFS)
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+          fetch-depth: 2  # needed to diff against the previous commit
+
+      - name: Detect added or modified WASM files
+        id: changed
+        run: |
+          # Compare HEAD with its parent; --diff-filter=d excludes deletions.
+          files=$(git diff --name-only --diff-filter=d HEAD~1 HEAD -- '*.wasm')
+          echo "files<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$files" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Configure AWS credentials
+        if: steps.changed.outputs.files != ''
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Upload WASM files to S3
+        if: steps.changed.outputs.files != ''
+        env:
+          S3_BUCKET: ${{ secrets.S3_BUCKET }}
+        run: |
+          # Strip the leading "protocols/" prefix so the S3 key preserves
+          # the <protocol>/<version>/<file> structure, e.g.:
+          #   protocols/shadowsocks/v1.0.0/shadowsocks_client.wasm
+          #   → s3://<bucket>/shadowsocks/v1.0.0/shadowsocks_client.wasm
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            echo "Uploading $file → s3://$S3_BUCKET/wateringhole/$file"
+            aws s3 cp "$file" "s3://$S3_BUCKET/$file" \
+              --content-type "application/wasm" \
+              --acl public-read
+          done <<< "${{ steps.changed.outputs.files }}"
