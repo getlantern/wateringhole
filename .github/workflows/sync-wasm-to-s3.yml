@@ -41,10 +41,6 @@ jobs:
         env:
           S3_BUCKET: ${{ secrets.S3_BUCKET }}
         run: |
-          # Strip the leading "protocols/" prefix so the S3 key preserves
-          # the <protocol>/<version>/<file> structure, e.g.:
-          #   protocols/shadowsocks/v1.0.0/shadowsocks_client.wasm
-          #   → s3://<bucket>/shadowsocks/v1.0.0/shadowsocks_client.wasm
           while IFS= read -r file; do
             [ -z "$file" ] && continue
             echo "Uploading $file → s3://$S3_BUCKET/wateringhole/$file"
